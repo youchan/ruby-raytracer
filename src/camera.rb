@@ -1,40 +1,75 @@
 require_relative 'vec3'
 require_relative 'ray'
 require_relative 'material'
+require_relative 'utils'
 
 class Camera
   attr_reader :image_width, :image_height
+  attr_reader :u, :v, :w
+  attr_reader :defocus_angle, :defocus_disk_u, :defocus_disk_v
 
-  SAMPLES_PAR_PIXEL = 100
+  SAMPLES_PAR_PIXEL = 500
   PIXEL_SAMPLES_SCALE = 1.0 / SAMPLES_PAR_PIXEL
   MAX_DEPTH = 50
+  ASPECT_RATIO = 16.0/9.0
+  IMAGE_WIDTH = 1200
 
-  def initialize(world, aspect_ratio: 16.0/9.0, image_width: 400, focal_length: 1.0, viewport_height: 2.0)
+  def initialize(world,
+    look_from: Vec3.new(0, 0, 0),
+    look_at: Vec3.new(0, 0, -1),
+    vup: Vec3.new(0, 1, 0),
+    vfov: 90,
+    defocus_angle: 0.0,
+    focus_dist: 10.0
+  )
     @world = world
-    @image_width = image_width
-    @image_height = (image_width / aspect_ratio).floor
+    @defocus_angle = defocus_angle
+
+    @image_width = IMAGE_WIDTH
+    @image_height = (image_width / ASPECT_RATIO).floor
     @image_height = 1 if @image_height < 1
-    @focal_length = focal_length
-    @viewport_height = viewport_height
-    @viewport_width = viewport_height * image_width.to_f / @image_height
-    @camera_center = Vec3.new(0, 0, 0)
 
-    viewport_u = Vec3.new(@viewport_width, 0, 0)
-    viewport_v = Vec3.new(0, -@viewport_height, 0)
+    @center = look_from
 
+    # Determin viewport dimensions
+    # @focal_length = (look_from - look_at).length
+    theta = Math.degrees_to_radians(vfov)
+    h = Math.tan(theta / 2)
+    @viewport_height = 2 * h * focus_dist
+    @viewport_width = @viewport_height * image_width.to_f / @image_height
+
+    # Calculate the u,v,w unit basis vectors for the camera cordinate frame.
+    @w = (look_from - look_at).unit_vector
+    @u = vup.cross(@w).unit_vector
+    @v = @w.cross(@u)
+
+    # Calculate the vectors across the horizontal and down the vertical viewport edges.
+    viewport_u = @viewport_width * @u
+    viewport_v = @viewport_height * -@v
+
+    # Calculate the horizontal and vertical delta vectors to the next pixel.
     @pixel_delta_u = viewport_u / @image_width
     @pixel_delta_v = viewport_v / @image_height
 
-    viewport_upper_left = @camera_center - Vec3.new(0, 0, @focal_length) - viewport_u / 2 - viewport_v / 2
+    # Calculate the location of the upper left pixel.
+    viewport_upper_left = @center - (focus_dist * @w) - viewport_u / 2 - viewport_v / 2
     @pixel100_loc = viewport_upper_left + 0.5 * (@pixel_delta_u + @pixel_delta_v)
+
+    # Calculate the camera defocus disk basis vectors.
+    defocus_radius = focus_dist * Math.tan(Math.degrees_to_radians(defocus_angle / 2))
+    @defocus_disk_u = u * defocus_radius
+    @defocus_disk_v = v * defocus_radius
   end
 
   def ray(x, y)
     offset_x = rand - 0.5
     offset_y = rand - 0.5
-    pixel_sample = @pixel100_loc + ((x.to_f + offset_x) * @pixel_delta_u) + ((y.to_f + offset_y) * @pixel_delta_v)
-    ray_direction = pixel_sample - @camera_center
-    Ray.new(@camera_center, ray_direction)
+    pixel_sample = @pixel100_loc +
+                   ((x.to_f + offset_x) * @pixel_delta_u) +
+                   ((y.to_f + offset_y) * @pixel_delta_v)
+    ray_origin = defocus_angle <= 0 ? @center : defocus_disk_sample
+    ray_direction = pixel_sample - ray_origin
+    Ray.new(ray_origin, ray_direction)
   end
 
   def ray_color(ray, depth)
@@ -44,13 +79,13 @@ class Camera
     if hit
       scattered = hit.material.scatter(ray, hit)
       if scattered
-        return hit.material.albedo * ray_color(scattered, depth - 1)
+        return hit.material.attenuation * ray_color(scattered, depth - 1)
       else
         return Vec3.new(0, 0, 0)
       end
     end
 
-    unit_direction = Vec3.unit_vector(ray.direction)
+    unit_direction = ray.direction.unit_vector
     a = 0.5 * (unit_direction.y + 1.0)
     (1.0 - a) * Vec3.new(1.0, 1.0, 1.0) + a * Vec3.new(0.5, 0.7, 1.0)
   end
@@ -87,5 +122,10 @@ class Camera
       end
     end
     image_data
+  end
+
+  def defocus_disk_sample
+    p = Vec3.random_in_unit_disk
+    @center + (p.x * defocus_disk_u) + (p.y * defocus_disk_v)
   end
 end

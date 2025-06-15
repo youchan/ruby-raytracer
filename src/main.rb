@@ -16,7 +16,7 @@ JS.global.setTimeout(-> {
 
   material_ground = Material::Lambertian.new(Vec3.new(0.8, 0,8, 0.0))
   material_center = Material::Lambertian.new(Vec3.new(0.1, 0,2, 0.5))
-  material_left = Material::Metal.new(Vec3.new(0.8, 0,8, 0.8))
+  material_left = Material::Metal.new(Vec3.new(0.8, 0,8, 0.8), 0.3)
   material_right = Material::Metal.new(Vec3.new(0.8, 0,6, 0.2))
 
   world << Sphere.new(Vec3.new(0.0, -100.5, -1.0), 100.0, material_ground)

@@ -1,4 +1,4 @@
-require_relative 'surrounds'
+require_relative 'utils'
 
 class HittableList
   def initialize

@@ -5,17 +5,50 @@ require_relative 'material'
 
 world = HittableList.new
 
-material_ground = Material::Lambertian.new(Vec3.new(0.8, 0.8, 0.0))
-material_center = Material::Lambertian.new(Vec3.new(0.1, 0.2, 0.5))
-material_left   = Material::Metal.new(Vec3.new(0.8, 0.8, 0.8))
-material_right  = Material::Metal.new(Vec3.new(0.8, 0.6, 0.2))
+ground_material = Material::Lambertian.new(Vec3.new(0.5, 0.5, 0.5))
+world << Sphere.new(Vec3.new( 0.0, -1000.0, -1.0), 1000.0, ground_material)
 
-world << Sphere.new(Vec3.new( 0.0, -100.5, -1.0), 100.0, material_ground)
-world << Sphere.new(Vec3.new( 0.0,    0.0, -1.2),   0.5, material_center)
-world << Sphere.new(Vec3.new(-1.3,    0.0, -1.0),   0.5, material_left)
-world << Sphere.new(Vec3.new( 1.3,    0.0, -1.0),   0.5, material_right)
+(-11..11).each do |a|
+  (-11..11).each do |b|
+    choose_mat = rand
+    center = Vec3.new(a + 0.9 * rand, 0.2, b + 0.9 * rand)
+    if (center - Vec3.new(4, 0.2, 0)).length > 0.9
+      case
+      when choose_mat < 0.8
+        albedo = Vec3.random * Vec3.random
+        sphere_material = Material::Lambertian.new(albedo)
+        world << Sphere.new(center, 0.2, sphere_material)
+      when choose_mat < 0.95
+        albedo = Vec3.random(0.5..1.0)
+        fuzz = rand(0.0..0.5)
+        sphere_material = Material::Metal.new(albedo, fuzz)
+        world << Sphere.new(center, 0.2, sphere_material)
+      else
+        sphere_material = Material::Dielectric.new(1.5)
+        world << Sphere.new(center, 0.2, sphere_material)
+      end
+    end
+  end
+end
 
-camera = Camera.new(world)
+material1 = Material::Dielectric.new(1.5)
+world << Sphere.new(Vec3.new(0, 1, 0), 1.0, material1)
+
+material2 = Material::Lambertian.new(Vec3.new(0.4, 0.2, 0.1))
+world << Sphere.new(Vec3.new(-4, 1, 0), 1.0, material2)
+
+material3 = Material::Metal.new(Vec3.new(0.7, 0.6, 0.5), 0.0)
+world << Sphere.new(Vec3.new(4, 1, 0), 1.0, material3)
+
+camera = Camera.new(
+  world,
+  look_from: Vec3.new(13, 2, 3),
+  look_at: Vec3.new(0, 0, 0),
+  vup: Vec3.new(0, 1, 0),
+  vfov: 20,
+  defocus_angle: 0.6,
+  focus_dist: 10.0
+)
 
 puts 'P3'
 puts "#{camera.image_width} #{camera.image_height}"

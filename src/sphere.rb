@@ -1,5 +1,5 @@
 require_relative 'hit_record'
-require_relative 'surrounds'
+require_relative 'utils'
 
 class Sphere
   attr_reader :center, :radius, :material

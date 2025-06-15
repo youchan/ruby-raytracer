@@ -11,5 +11,9 @@ module Material
       scatter_direction hit_record.normal if scatter_direction.near_zero
       Ray.new(hit_record.point, scatter_direction)
     end
+
+    def attenuation
+      albedo
+    end
   end
 end

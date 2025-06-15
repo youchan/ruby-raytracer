@@ -67,6 +67,13 @@ class Vec3
     self - 2 * self.dot(n) * n
   end
 
+  def refract(n, etai_over_etat)
+    cos_theta = [-self.dot(n), 1.0].min
+    r_out_prep = etai_over_etat * (self + cos_theta * n)
+    r_out_parallel = -Math.sqrt((1.0 - r_out_prep.length_squared).abs) * n
+    r_out_prep + r_out_parallel
+  end
+
   def dot(v)
     self.x * v.x + self.y * v.y + self.z * v.z
   end
@@ -83,8 +90,8 @@ class Vec3
     "[#{x}, #{y}, #{z}]"
   end
 
-  def self.unit_vector(vec)
-    vec / vec.length
+  def unit_vector
+    self / self.length
   end
 
   def self.random(range = 0.0...1.0)
@@ -107,6 +114,13 @@ class Vec3
       on_unit_sphere
     else
       -on_unit_sphere
+    end
+  end
+
+  def self.random_in_unit_disk
+    loop do
+      p = Vec3.new(rand(-1.0..1.0), rand(-1.0..1.0), 0)
+      return p if p.length_squared < 1
     end
   end
 end
