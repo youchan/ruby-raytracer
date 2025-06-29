@@ -50,13 +50,13 @@ camera = Camera.new(
   focus_dist: 10.0
 )
 
-puts 'P3'
-puts "#{camera.image_width} #{camera.image_height}"
-puts '256'
+File.open('test.ppm', 'wb') do |file|
+  file.puts 'P3'
+  file.puts "#{camera.image_width} #{camera.image_height}"
+  file.puts '256'
 
-pixel_data = camera.render
-
-pixel_data.each_with_index do |pixel, i|
-  puts "#{pixel & 0xff} #{(pixel >> 8) & 0xff} #{(pixel >> 16) & 0xff}"
+  pixel_data = camera.render do |pixel, i, j|
+    puts "Line = #{j}/#{camera.image_height}" if i == 0
+    file.puts "#{pixel & 0xff} #{(pixel >> 8) & 0xff} #{(pixel >> 16) & 0xff}"
+  end
 end
-

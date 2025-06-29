@@ -108,17 +108,18 @@ class Camera
     rbyte | gbyte << 8 | bbyte << 16
   end
 
-  def render(&block)
+  def render(&callback)
     image_data = Array.new(image_height * image_width)
     image_height.times do |j|
-      block.call(j + 1) if block
       image_width.times do |i|
         pixel_color = Vec3.new(0, 0, 0)
         SAMPLES_PAR_PIXEL.times do |sample|
           ray = ray(i, j)
           pixel_color += ray_color(ray, MAX_DEPTH)
         end
-        image_data[j * image_width + i] = color_to_i(pixel_color * PIXEL_SAMPLES_SCALE)
+        color_num = color_to_i(pixel_color * PIXEL_SAMPLES_SCALE)
+        image_data[j * image_width + i] = color_num
+        callback.call(color_num, i, j)
       end
     end
     image_data
